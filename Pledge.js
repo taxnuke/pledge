@@ -21,9 +21,9 @@ Pledge.prototype._runResolveHandlers = function () {
     const rv = handler(this._value)
 
     if (rv && rv instanceof Pledge) {
-      rv.then(res => {
-        this._nextPledge._resolve(res)
-      })
+      rv
+        .then(res => this._nextPledge._resolve(res))
+        .catch(err => this._nextPledge._reject(err))
     } else {
       this._nextPledge._resolve(rv)
     }
@@ -35,9 +35,7 @@ Pledge.prototype._runRejectHandlers = function () {
     const rv = handler(this._err)
 
     if (rv && rv instanceof Pledge) {
-      rv.then(res => {
-        this._nextPledge._reject(res)
-      })
+      rv.then(res => this._nextPledge._reject(res))
     } else {
       this._nextPledge._reject(rv)
     }

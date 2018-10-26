@@ -1,0 +1,23 @@
+{
+  "name": "pledge",
+  "version": "1.0.0",
+  "description": "",
+  "main": "Pledge.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/taxnuke/pledge.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/taxnuke/pledge/issues"
+  },
+  "homepage": "https://github.com/taxnuke/pledge#readme",
+  "devDependencies": {
+    "jest": "^23.6.0"
+  }
+}

@@ -1,31 +1,32 @@
 /**
- * Placeholder function
+ * MIT License
+ *
+ * Copyright (c) 2018 Semyon Fomin
  */
-const dummyFn = () => {}
 
 /**
- * Represents a promise object
+ * Represents a promise object.
  *
  * @param {Function} fn - executor function (can be omitted)
  * @constructor
  */
-function Pledge(fn = dummyFn) {
+function Pledge(fn = _dummyFn) {
   this._next = null
   this._value = null
   this._errorHandlers = []
   this._successHandlers = []
-  this._state = Pledge.prototype.states.pending
+  this._state = Pledge.prototype._states.pending
 
   this._attempt(() => {
     fn(this._resolve.bind(this), this._reject.bind(this))
   }, e => {
     this._value = e
-    this._state = Pledge.prototype.states.rejected
+    this._state = Pledge.prototype._states.rejected
   })
 }
 
 /**
- * Returns a promise object that is resolved with the given value
+ * Returns a promise object that is resolved with the given value.
  *
  * @param {*} value - value the promise must resolve to
  * @return {Pledge}
@@ -38,7 +39,7 @@ Pledge.resolve = function (value) {
 }
 
 /**
- * Returns a promise object that is rejected with the given reason
+ * Returns a promise object that is rejected with the given reason.
  *
  * @param {*} reason - reason the promise must be rejected with
  * @return {Pledge}
@@ -48,6 +49,30 @@ Pledge.reject = function (reason) {
   p._reject(reason)
 
   return p
+}
+
+/**
+ * Returns a resolved or rejected promise, depending on the first promise that
+ * was resolved or rejected.
+ *
+ * @param {Iterable} iterable - promises to wait for
+ */
+Pledge.race = function (iterable) {
+  return new Pledge((resolve, reject) => {
+    iterable.forEach(promise => {
+      if (!(promise instanceof Pledge)) {
+        promise = Pledge.resolve(promise)
+      }
+
+      promise
+        .then(value => {
+          resolve(value)
+        })
+        .catch(err => {
+          reject(err)
+        })
+    })
+  })
 }
 
 /**
@@ -82,7 +107,7 @@ Pledge.all = function (iterable) {
 }
 
 /**
- * Add an error handler
+ * Add an error handler.
  *
  * @param {Function} onError - error handler
  * @return {Pledge}
@@ -92,7 +117,7 @@ Pledge.prototype.catch = function (onError) {
 }
 
 /**
- * Add a success [and/or an error] handler
+ * Add a success [and/or an error] handler.
  *
  * @param {Function} onSuccess - success handler
  * @param {Function} onError - error handler
@@ -107,17 +132,17 @@ Pledge.prototype.then = function (onSuccess, onError = null) {
     this._errorHandlers.push(onError)
   }
 
-  if (this._state === Pledge.prototype.states.resolved) {
+  if (this._state === Pledge.prototype._states.resolved) {
     this._runSuccessHandlers(this._value)
   }
 
-  if (this._state === Pledge.prototype.states.rejected) {
+  if (this._state === Pledge.prototype._states.rejected) {
     this._runErrorHandlers(this._value)
   }
 
   this._next = new Pledge()
 
-  if (this._state === Pledge.prototype.states.rejected) {
+  if (this._state === Pledge.prototype._states.rejected) {
     this._next._reject(this._value)
   }
 
@@ -171,17 +196,17 @@ Pledge.prototype._runErrorHandlers = function () {
 }
 
 Pledge.prototype._reject = function (error) {
-  if (this._state === Pledge.prototype.states.pending) {
+  if (this._state === Pledge.prototype._states.pending) {
     this._value = error
-    this._state = Pledge.prototype.states.rejected
+    this._state = Pledge.prototype._states.rejected
     this._runErrorHandlers()
   }
 }
 
 Pledge.prototype._resolve = function (result) {
-  if (this._state === Pledge.prototype.states.pending) {
+  if (this._state === Pledge.prototype._states.pending) {
     this._value = result
-    this._state = Pledge.prototype.states.resolved
+    this._state = Pledge.prototype._states.resolved
     this._runSuccessHandlers()
   }
 }
@@ -189,14 +214,14 @@ Pledge.prototype._resolve = function (result) {
 /**
  * Try-catch blocks prevent function body optimizations in older versions of V8,
  * so _attempt function was created to be the only unoptimized function in such
- * a case
+ * a case.
  *
  * @param {Function} fn function to run
  * @param {Function} exceptionHandler - exception handler
  * @return {*}
  * @private
  */
-Pledge.prototype._attempt = function (fn, exceptionHandler = dummyFn) {
+Pledge.prototype._attempt = function (fn, exceptionHandler = _dummyFn) {
   try {
     return fn()
   } catch (ex) {
@@ -204,7 +229,11 @@ Pledge.prototype._attempt = function (fn, exceptionHandler = dummyFn) {
   }
 }
 
-Pledge.prototype.states = Object.freeze({
+function _dummyFn() {
+  // Placeholder function for empty promises
+}
+
+Pledge.prototype._states = Object.freeze({
   pending: Symbol('pending'),
   resolved: Symbol('resolved'),
   rejected: Symbol('rejected')

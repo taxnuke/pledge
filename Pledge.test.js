@@ -397,3 +397,39 @@ test('Pledge.all() is rejected on first rejected promise', done => {
       done()
     })
 })
+
+test('Pledge.race() is rejected on first rejected promise', done => {
+  const err = new Error('Rejected')
+
+  const p1 = P.reject(err)
+  const p2 = new P(resolve => {
+    setTimeout(resolve, 10, 'foo')
+  })
+
+  P.race([p1, p2])
+    .then(() => {
+      throw new Error('Should not have resolved!')
+    })
+    .catch(e => {
+      expect(e).toBe(err)
+      done()
+    })
+})
+
+test('Pledge.race() is resolved on first resoled promise', done => {
+  const p1 = new P(resolve => {
+    setTimeout(resolve, 20, 'foo')
+  })
+  const p2 = new P(resolve => {
+    setTimeout(resolve, 30, 'bar')
+  })
+  const p3 = new P(resolve => {
+    setTimeout(resolve, 10, 'baz')
+  })
+
+  P.race([p1, p2, p3])
+    .then(value => {
+      expect(value).toBe('baz')
+      done()
+    })
+})

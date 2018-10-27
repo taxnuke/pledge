@@ -62,7 +62,6 @@ test('resolution handlers can be chained', function (done) {
           resolve(testString);
         }, 10);
       });
-
     })
     .then(function (string) {
       expect(string).toBe(testString)
@@ -108,7 +107,7 @@ test('resolution handlers can be attached when promise is resolved', done => {
     });
 });
 
-test('calling resolve second time has no effect', done => {
+xtest('calling resolve second time has no effect', done => {
   let testString = 'foo';
   let testString2 = 'bar';
 
@@ -125,7 +124,7 @@ test('calling resolve second time has no effect', done => {
   });
 });
 
-xtest('rejection handler is called when promise is rejected', function (t) {
+xtest('rejection handler is called when promise is rejected', done => {
   let testError = new Error('Something went wrong');
 
   let promise = new P(function (resolve, reject) {
@@ -135,12 +134,12 @@ xtest('rejection handler is called when promise is rejected', function (t) {
   });
 
   promise.catch(function (value) {
-    t.equal(value, testError);
-    t.end();
+    expect(value).toEqual(testError)
+    done()
   });
 });
 
-xtest('rejections are passed downstream', function (t) {
+xtest('rejections are passed downstream', function (done) {
   let testError = new Error('Something went wrong');
 
   let promise = new P(function (resolve, reject) {
@@ -149,21 +148,22 @@ xtest('rejections are passed downstream', function (t) {
     }, 100);
   });
 
-  promise.then(function () {
-    return new P(function (resolve) {
-      setTimeout(function () {
-        resolve(testError);
-      }, 100);
+  promise
+    .then(function () {
+      return new P(function (resolve) {
+        setTimeout(function () {
+          resolve(testError);
+        }, 100);
+      });
+    })
+    .catch(function (value) {
+      expect(value).toBe(testError)
+      done()
     });
-  }).catch(function (value) {
-    t.equal(value, testError);
-    t.end();
-  });
 });
 
-xtest('rejecting promises returned from resolution handlers are caught properly', function (t) {
+xtest('rejecting promises returned from resolution handlers are caught properly', done => {
   let testError = new Error('Something went wrong');
-
 
   let promise = new P(function (resolve) {
     setTimeout(function () {
@@ -180,12 +180,12 @@ xtest('rejecting promises returned from resolution handlers are caught properly'
       });
     })
     .catch(function (value) {
-      t.equal(value, testError);
-      t.end();
+      expect(value).toBe(testError)
+      done()
     });
 });
 
-xtest('rejection handlers catch synchronous errors in resolution handlers', function (t) {
+xtest('rejection handlers catch synchronous errors in resolution handlers', done => {
   let testError = new Error('Something went wrong');
 
   let promise = new P(function (resolve) {
@@ -194,34 +194,38 @@ xtest('rejection handlers catch synchronous errors in resolution handlers', func
     }, 100);
   });
 
-  promise.then(function () {
-    throw testError;
-  }).catch(function (value) {
-    t.equal(value, testError);
-    t.end();
-  });
+  promise
+    .then(function () {
+      throw testError;
+    })
+    .catch(function (value) {
+      expect(value).toBe(testError)
+      done()
+    });
 });
 
-xtest('rejection handlers catch synchronous errors in the executor function', function (t) {
+xtest('rejection handlers catch synchronous errors in the executor function', function (done) {
   let testError = new Error('Something went wrong');
 
   let promise = new P(function () {
     throw testError;
   });
 
-  promise.then(function () {
-    return new P(function (resolve) {
-      setTimeout(function () {
-        resolve(testError);
-      }, 100);
+  promise
+    .then(function () {
+      return new P(function (resolve) {
+        setTimeout(function () {
+          resolve(testError);
+        }, 100);
+      });
+    })
+    .catch(function (value) {
+      expect(value).toBe(testError)
+      done()
     });
-  }).catch(function (value) {
-    t.equal(value, testError);
-    t.end();
-  });
 });
 
-xtest('rejection handlers catch synchronous erros', function (t) {
+xtest('rejection handlers catch synchronous erros', done => {
   let testError = new Error('Something went wrong');
 
   let promise = new P(function (resolve) {
@@ -238,34 +242,34 @@ xtest('rejection handlers catch synchronous erros', function (t) {
       throw testError;
     })
     .catch(function (value) {
-      t.equal(value, testError);
-      t.end();
+      expect(value).toBe(testError)
+      done()
     });
 });
 
-xtest('chaining works after "catch"', function (t) {
+xtest('chaining works after "catch"', function (done) {
   let testString = 'foo';
 
   let promise = new P(function (resolve) {
-    setTimeout(function () {
+    setTimeout(function a() {
       resolve();
     }, 100);
   });
 
   promise
-    .then(function () {
+    .then(function b() {
       throw new Error('some Error');
     })
-    .catch(function () {
-      return new P(function (resolve) {
-        setTimeout(function () {
+    .catch(function c() {
+      return new P(function d(resolve) {
+        setTimeout(function e() {
           resolve(testString);
         }, 100);
       });
     })
-    .then(function (value) {
-      t.equal(value, testString);
-      t.end();
+    .then(function f(value) {
+      expect(value).toBe(testString)
+      done()
     });
 });
 

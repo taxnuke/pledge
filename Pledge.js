@@ -1,7 +1,13 @@
-const dummyFn = () => {
-  // Placeholder function
-}
+/**
+ * Placeholder function
+ */
+const dummyFn = () => {}
 
+/**
+ * Represents a promise object
+ * @param {Function} fn - executor function (can be omitted)
+ * @constructor
+ */
 function Pledge(fn = dummyFn) {
   this._next = null
   this._value = null
@@ -9,19 +15,30 @@ function Pledge(fn = dummyFn) {
   this._successHandlers = []
   this._state = Pledge.prototype.states.pending
 
-  try {
+  this._attempt(() => {
     fn(this._resolve.bind(this), this._reject.bind(this))
-  } catch (e) {
+  }, e => {
     this._value = e
     this._state = Pledge.prototype.states.rejected
-  }
+  })
 }
 
+/**
+ * Add an error handler
+ * @param {Function} onError - error handler
+ * @return {Pledge}
+ */
 Pledge.prototype.catch = function (onError) {
   return this.then(null, onError)
 }
 
-Pledge.prototype.then = function (onSuccess, onError) {
+/**
+ * Add a success [and/or an error] handler
+ * @param {Function} onSuccess - success handler
+ * @param {Function} onError - error handler
+ * @return {Pledge}
+ */
+Pledge.prototype.then = function (onSuccess, onError = null) {
   if (onSuccess) {
     this._successHandlers.push(onSuccess)
   }
@@ -51,15 +68,12 @@ Pledge.prototype._runSuccessHandlers = function () {
   this._successHandlers.forEach(handler => {
     let handlerResult
 
-    try {
+    this._attempt(() => {
       handlerResult = handler(this._value)
-    } catch (e) {
-      this._next._reject(e)
-    }
+    }, e => this._next._reject(e))
 
     if (handlerResult && handlerResult instanceof Pledge) {
       handlerResult
-      // todo: investigate .then(this._next._resolve)
         .then(result => this._next._resolve(result))
         .catch(error => this._next._reject(error))
     } else {
@@ -78,15 +92,12 @@ Pledge.prototype._runErrorHandlers = function () {
   this._errorHandlers.forEach(handler => {
     let handlerResult
 
-    try {
+    this._attempt(() => {
       handlerResult = handler(this._value)
-    } catch (e) {
-      this._next._reject(e)
-    }
+    }, e => this._next._reject(e))
 
     if (handlerResult && handlerResult instanceof Pledge) {
       handlerResult
-      // todo: investigate .then(this._next._resolve)
         .then(result => this._next._resolve(result))
         .catch(error => this._next._reject(error))
     } else {
@@ -113,6 +124,16 @@ Pledge.prototype._resolve = function (result) {
   }
 }
 
+/**
+ * Try-catch blocks prevent function body optimizations in older versions of V8,
+ * so _attempt function was created to be the only unoptimized function in such
+ * a case
+ *
+ * @param {Function} fn function to run
+ * @param {Function} exceptionHandler - exception handler
+ * @return {*}
+ * @private
+ */
 Pledge.prototype._attempt = function (fn, exceptionHandler = dummyFn) {
   try {
     return fn()

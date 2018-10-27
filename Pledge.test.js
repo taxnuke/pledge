@@ -111,7 +111,7 @@ test('very complex chaining works', done => {
   new P((resolve, reject) => {
     setTimeout(reject, 20, 'foo')
   })
-    .catch((err) => {
+    .catch(err => {
       return P.resolve(err)
     })
     .then(result => {

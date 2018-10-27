@@ -5,6 +5,7 @@ const dummyFn = () => {}
 
 /**
  * Represents a promise object
+ *
  * @param {Function} fn - executor function (can be omitted)
  * @constructor
  */
@@ -24,7 +25,65 @@ function Pledge(fn = dummyFn) {
 }
 
 /**
+ * Returns a promise object that is resolved with the given value
+ *
+ * @param {*} value - value the promise must resolve to
+ * @return {Pledge}
+ */
+Pledge.resolve = function (value) {
+  const p = new Pledge()
+  p._resolve(value)
+
+  return p
+}
+
+/**
+ * Returns a promise object that is rejected with the given reason
+ *
+ * @param {*} reason - reason the promise must be rejected with
+ * @return {Pledge}
+ */
+Pledge.reject = function (reason) {
+  const p = new Pledge()
+  p._reject(reason)
+
+  return p
+}
+
+/**
+ * Returns a single promise that resolves when all of the promises in the
+ * iterable argument have resolved or when the iterable argument contains no
+ * promises. It rejects with the reason of the first promise that rejects.
+ *
+ * @param {Iterable} iterable - promises to wait for
+ */
+Pledge.all = function (iterable) {
+  return new Pledge((resolve, reject) => {
+    const values = []
+
+    iterable.forEach((promise, index) => {
+      if (!(promise instanceof Pledge)) {
+        promise = Pledge.resolve(promise)
+      }
+
+      promise
+        .then(value => {
+          values[index] = value
+
+          if (values.length === iterable.length) {
+            resolve(values)
+          }
+        })
+        .catch(err => {
+          reject(err)
+        })
+    })
+  })
+}
+
+/**
  * Add an error handler
+ *
  * @param {Function} onError - error handler
  * @return {Pledge}
  */
@@ -34,6 +93,7 @@ Pledge.prototype.catch = function (onError) {
 
 /**
  * Add a success [and/or an error] handler
+ *
  * @param {Function} onSuccess - success handler
  * @param {Function} onError - error handler
  * @return {Pledge}
@@ -77,7 +137,9 @@ Pledge.prototype._runSuccessHandlers = function () {
         .then(result => this._next._resolve(result))
         .catch(error => this._next._reject(error))
     } else {
-      this._next._resolve(handlerResult)
+      if (this._next) {
+        this._next._resolve(handlerResult)
+      }
     }
   })
 }

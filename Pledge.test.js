@@ -45,7 +45,6 @@ test('supports multiple success handlers', done => {
   })
 })
 
-
 test('success handlers are chainable', done => {
   let foo = 'foo'
 
@@ -115,7 +114,7 @@ test('calling resolve() for the second time does nothing', done => {
     setTimeout(() => {
       resolve(foo)
       resolve(testString2)
-    }, 100)
+    }, 10)
   })
 
   promise.then(function (value) {
@@ -130,7 +129,7 @@ test('error handler is called on rejection', done => {
   let promise = new P(function (resolve, reject) {
     setTimeout(() => {
       reject(err)
-    }, 100)
+    }, 10)
   })
 
   promise.catch(function (value) {
@@ -145,7 +144,7 @@ test('errors are passed by the chain of promises', done => {
   let promise = new P(function (resolve, reject) {
     setTimeout(() => {
       reject(err)
-    }, 100)
+    }, 10)
   })
 
   promise
@@ -153,7 +152,7 @@ test('errors are passed by the chain of promises', done => {
       return new P(function (resolve) {
         setTimeout(() => {
           resolve(err)
-        }, 100)
+        }, 10)
       })
     })
     .catch(function (value) {
@@ -168,7 +167,7 @@ test('rejected promises from success handlers are caught', done => {
   let promise = new P(function (resolve) {
     setTimeout(() => {
       resolve()
-    }, 100)
+    }, 10)
   })
 
   promise
@@ -176,7 +175,7 @@ test('rejected promises from success handlers are caught', done => {
       return new P(function (resolve, reject) {
         setTimeout(() => {
           reject(err)
-        }, 100)
+        }, 10)
       })
     })
     .catch(function (value) {
@@ -191,7 +190,7 @@ test('error handlers receive synchronous errors from success handlers', done => 
   let promise = new P(function (resolve) {
     setTimeout(() => {
       resolve()
-    }, 100)
+    }, 10)
   })
 
   promise
@@ -216,7 +215,7 @@ test('error handlers catch errors thrown from the initial function', done => {
       return new P(function (resolve) {
         setTimeout(() => {
           resolve(err)
-        }, 100)
+        }, 10)
       })
     })
     .catch(function (value) {
@@ -231,7 +230,7 @@ test('error handlers catch synchronous errors', done => {
   let promise = new P(function (resolve) {
     setTimeout(() => {
       resolve()
-    }, 100)
+    }, 10)
   })
 
   promise
@@ -253,7 +252,7 @@ test('chaining is possible after .catch()', done => {
   let promise = new P(function (resolve) {
     setTimeout(function a() {
       resolve()
-    }, 100)
+    }, 10)
   })
 
   promise
@@ -264,7 +263,7 @@ test('chaining is possible after .catch()', done => {
       return new P(function d(resolve) {
         setTimeout(function e() {
           resolve(foo)
-        }, 100)
+        }, 10)
       })
     })
     .then(function f(value) {
@@ -273,14 +272,13 @@ test('chaining is possible after .catch()', done => {
     })
 })
 
-
 test('rejected promises returned from error handlers are caught', done => {
   let err = new Error('Something went wrong')
 
   let promise = new P(function (resolve) {
     setTimeout(() => {
       resolve()
-    }, 100)
+    }, 10)
   })
 
   promise
@@ -291,7 +289,7 @@ test('rejected promises returned from error handlers are caught', done => {
       return new P(function (resolve, reject) {
         setTimeout(() => {
           reject(err)
-        }, 100)
+        }, 10)
       })
     })
     .catch(function (value) {
@@ -306,7 +304,7 @@ test('second argument in then() is treated an error handler', done => {
   let promise = new P(function (resolve, reject) {
     setTimeout(() => {
       reject(err)
-    }, 100)
+    }, 10)
   })
 
   promise
@@ -327,7 +325,7 @@ test('second argument of then() is attached to the promise on which then() is ca
   let promise = new P(function (resolve) {
     setTimeout(() => {
       resolve()
-    }, 100)
+    }, 10)
   })
 
   promise
@@ -336,7 +334,7 @@ test('second argument of then() is attached to the promise on which then() is ca
         return new P(function (resolve, reject) {
           setTimeout(() => {
             reject(err)
-          }, 100)
+          }, 10)
         })
       },
       () => {
@@ -345,6 +343,57 @@ test('second argument of then() is attached to the promise on which then() is ca
     .catch(function (error) {
       expect(error).toBe(err)
       expect(ran).toBe(false)
+      done()
+    })
+})
+
+test('non promise objects are convertible with .resolve()', done => {
+  const p1 = P.resolve(3)
+
+  p1.then(result => {
+    expect(result).toBe(3)
+    done()
+  })
+})
+
+test('non promise objects are convertible with .reject()', done => {
+  const p1 = P.reject(3)
+
+  p1.catch(result => {
+    expect(result).toBe(3)
+    done()
+  })
+})
+
+test('Pledge.all() awaits for all of its promises to resolve', done => {
+  const p1 = P.resolve(3)
+  const p2 = 1337
+  const p3 = new P(resolve => {
+    setTimeout(resolve, 10, 'foo')
+  })
+
+  P.all([p1, p2, p3])
+    .then(values => {
+      expect(values).toEqual([3, 1337, 'foo'])
+      done()
+    })
+})
+
+test('Pledge.all() is rejected on first rejected promise', done => {
+  const err = new Error('Rejected')
+
+  const p1 = 0
+  const p2 = P.reject(err)
+  const p3 = new P(resolve => {
+    setTimeout(resolve, 10, 'foo')
+  })
+
+  P.all([p1, p2, p3])
+    .then(() => {
+      throw new Error('Should not have resolved!')
+    })
+    .catch(e => {
+      expect(e).toBe(err)
       done()
     })
 })

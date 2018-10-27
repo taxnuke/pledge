@@ -1,7 +1,7 @@
 {
-  "name": "pledge",
-  "version": "1.0.0",
-  "description": "A simple promise library",
+  "name": "@taxnuke/pledge",
+  "version": "0.0.1",
+  "description": "A bare minimum promise library",
   "main": "Pledge.js",
   "scripts": {
     "pretest": "eslint --ignore-path .gitignore .",
@@ -11,9 +11,13 @@
     "type": "git",
     "url": "git+https://github.com/taxnuke/pledge.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "simple",
+    "promises",
+    "async"
+  ],
+  "author": "Semyon Fomin <taxnuke@gmail.com>",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/taxnuke/pledge/issues"
   },

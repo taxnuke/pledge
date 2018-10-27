@@ -124,6 +124,10 @@ Pledge.prototype.catch = function (onError) {
  * @return {Pledge}
  */
 Pledge.prototype.then = function (onSuccess, onError = null) {
+  if (!this._next) {
+    this._next = new Pledge()
+  }
+
   if (onSuccess) {
     this._successHandlers.push(onSuccess)
   }
@@ -140,8 +144,6 @@ Pledge.prototype.then = function (onSuccess, onError = null) {
     this._runErrorHandlers(this._value)
   }
 
-  this._next = new Pledge()
-
   if (this._state === Pledge.prototype._states.rejected) {
     this._next._reject(this._value)
   }
@@ -149,8 +151,14 @@ Pledge.prototype.then = function (onSuccess, onError = null) {
   return this._next
 }
 
-Pledge.prototype._runSuccessHandlers = function () {
-  this._successHandlers.forEach(handler => {
+Pledge.prototype._execHandlers = function (handlers, fallback) {
+  if (handlers.length < 1 && this._next) {
+    fallback(this._value)
+
+    return
+  }
+
+  handlers.forEach(handler => {
     let handlerResult
 
     this._attempt(() => {
@@ -159,39 +167,28 @@ Pledge.prototype._runSuccessHandlers = function () {
 
     if (handlerResult && handlerResult instanceof Pledge) {
       handlerResult
-        .then(result => this._next._resolve(result))
-        .catch(error => this._next._reject(error))
+        .then(result => {
+          this._next._resolve(result)
+        }, error => {
+          this._next._reject(error)
+        })
     } else {
       if (this._next) {
-        this._next._resolve(handlerResult)
+        fallback(handlerResult)
       }
     }
   })
 }
 
 Pledge.prototype._runErrorHandlers = function () {
-  if (this._errorHandlers.length < 1 && this._next) {
-    this._next._reject(this._value)
+  this._execHandlers(this._errorHandlers, value => {
+    this._next._reject(value)
+  })
+}
 
-    return
-  }
-
-  this._errorHandlers.forEach(handler => {
-    let handlerResult
-
-    this._attempt(() => {
-      handlerResult = handler(this._value)
-    }, e => this._next._reject(e))
-
-    if (handlerResult && handlerResult instanceof Pledge) {
-      handlerResult
-        .then(result => this._next._resolve(result))
-        .catch(error => this._next._reject(error))
-    } else {
-      if (this._next) {
-        this._next._resolve(handlerResult)
-      }
-    }
+Pledge.prototype._runSuccessHandlers = function () {
+  this._execHandlers(this._successHandlers, value => {
+    this._next._resolve(value)
   })
 }
 

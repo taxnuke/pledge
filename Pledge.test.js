@@ -85,6 +85,50 @@ test('chaining works with non-promise return types', done => {
     })
 })
 
+test('complex chaining works', done => {
+  new P(resolve => {
+    setTimeout(resolve, 20, 'foo')
+  })
+    .catch(() => {
+      throw new Error('Should not have been thrown...')
+    })
+    .then(result => {
+      return P.reject(result)
+    })
+    .then(() => {
+      throw new Error('Should not have been thrown...')
+    })
+    .then(res => {
+      throw new Error('Should not have been thrown...' + res)
+    })
+    .catch(reason => {
+      expect(reason).toBe('foo')
+      done()
+    })
+})
+
+test('very complex chaining works', done => {
+  new P((resolve, reject) => {
+    setTimeout(reject, 20, 'foo')
+  })
+    .catch((err) => {
+      return P.resolve(err)
+    })
+    .then(result => {
+      return P.reject(result)
+    })
+    .then(() => {
+      throw new Error('Should not have been thrown...')
+    })
+    .then(res => {
+      throw new Error('Should not have been thrown...' + res)
+    })
+    .catch(reason => {
+      expect(reason).toBe('foo')
+      done()
+    })
+})
+
 test('success handlers can be attached when a promise is resolved', done => {
   let foo = 'foo'
 

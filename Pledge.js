@@ -7,7 +7,12 @@ function Pledge(executor) {
   this._nextPledge = undefined
   this._prevPledge = undefined
 
-  executor(this._resolve.bind(this), this._reject.bind(this))
+  try {
+    executor(this._resolve.bind(this), this._reject.bind(this))
+  } catch (e) {
+    this._state = Pledge.prototype.states.rejected
+    this._err = e
+  }
 }
 
 Pledge.prototype.states = Object.freeze({
@@ -18,26 +23,36 @@ Pledge.prototype.states = Object.freeze({
 
 Pledge.prototype._runResolveHandlers = function () {
   this._resolveHandlers.forEach(handler => {
-    const rv = handler(this._value)
+    try {
+      const rv = handler(this._value)
 
-    if (rv && rv instanceof Pledge) {
-      rv
-        .then(res => this._nextPledge._resolve(res))
-        .catch(err => this._nextPledge._reject(err))
-    } else {
-      this._nextPledge._resolve(rv)
+      if (rv && rv instanceof Pledge) {
+        rv
+          .then(res => this._nextPledge._resolve(res))
+          .catch(err => this._nextPledge._reject(err))
+      } else {
+        this._nextPledge._resolve(rv)
+      }
+    } catch (e) {
+      this._nextPledge._reject(e)
     }
   })
 }
 
 Pledge.prototype._runRejectHandlers = function () {
   this._rejectHandlers.forEach(handler => {
-    const rv = handler(this._err)
+    try {
+      const rv = handler(this._err)
 
-    if (rv && rv instanceof Pledge) {
-      rv.then(res => this._nextPledge._reject(res))
-    } else {
-      this._nextPledge._reject(rv)
+      if (rv && rv instanceof Pledge) {
+        rv
+          .then(res => this._nextPledge._resolve(res))
+          .catch(res => this._nextPledge._reject(res))
+      } else if (this._nextPledge) {
+        this._nextPledge._reject(rv)
+      }
+    } catch (e) {
+      this._nextPledge._reject(e)
     }
   })
 }
@@ -68,12 +83,15 @@ Pledge.prototype.catch = function (handler) {
   if (this._state === Pledge.prototype.states.rejected) {
     this._runRejectHandlers();
 
-    return this
+    // return this
   }
 
   if (!this._nextPledge) {
     this._nextPledge = new Pledge(() => {
     })
+    this._nextPledge._state = this._state
+    this._nextPledge._value = this._value
+    this._nextPledge._err = this._err
     this._nextPledge._prevPledge = this
   }
 
@@ -86,12 +104,15 @@ Pledge.prototype.then = function (handler) {
   if (this._state === Pledge.prototype.states.resolved) {
     this._runResolveHandlers();
 
-    return this
+    // return this
   }
 
   if (!this._nextPledge) {
     this._nextPledge = new Pledge(() => {
     })
+    this._nextPledge._state = this._state
+    this._nextPledge._value = this._value
+    this._nextPledge._err = this._err
     this._nextPledge._prevPledge = this
   }
 

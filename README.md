@@ -2,4 +2,4 @@
 ---
 # Pledge
 
-A bare minimum promise library create for educational purposes
+A bare minimum promise library created for educational purposes

@@ -115,9 +115,9 @@ Pledge.prototype._resolve = function (result) {
 
 Pledge.prototype._attempt = function (fn, exceptionHandler = dummyFn) {
   try {
-    return fn();
+    return fn()
   } catch (ex) {
-    exceptionHandler(ex);
+    exceptionHandler(ex)
   }
 }
 

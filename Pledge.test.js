@@ -1,384 +1,350 @@
-const P = require('./Pledge.js');
+const P = require('./Pledge.js')
 // const P = Promise
 
-test('executor function is called immediately', function () {
-  let string;
+test('initial promise function is called instantly', () => {
+  let string
 
-  new P(function () {
+  new P(() => {
     string = 'foo'
-  });
+  })
 
   expect(string).toBe('foo')
-});
+})
 
-test('resolution handler is called when promise is resolved', function (done) {
-  let testString = 'foo';
+test('success handler is called on resolve', done => {
+  let foo = 'foo'
 
   let promise = new P(function (resolve) {
-    setTimeout(function () {
-      resolve(testString);
-    }, 10);
-  });
+    setTimeout(() => {
+      resolve(foo)
+    }, 10)
+  })
 
   promise.then(function (string) {
-    expect(string).toBe(testString)
+    expect(string).toBe(foo)
     done()
-  });
-});
+  })
+})
 
-test('promise supports many resolution handlers', function (done) {
-  let testString = 'foo';
+test('supports multiple success handlers', done => {
+  let foo = 'foo'
 
   let promise = new P(function (resolve) {
-    setTimeout(function () {
-      resolve(testString);
-    }, 10);
-  });
+    setTimeout(() => {
+      resolve(foo)
+    }, 10)
+  })
 
   promise.then(function (string) {
-    expect(string).toBe(testString);
-  });
+    expect(string).toBe(foo)
+  })
 
   promise.then(function (string) {
-    expect(string).toBe(testString);
+    expect(string).toBe(foo)
     done()
-  });
-});
+  })
+})
 
 
-test('resolution handlers can be chained', function (done) {
-  let testString = 'foo';
+test('success handlers are chainable', done => {
+  let foo = 'foo'
 
   let promise = new P(function (resolve) {
-    setTimeout(function () {
-      resolve();
-    }, 10);
-  });
+    setTimeout(() => {
+      resolve()
+    }, 10)
+  })
 
   promise
-    .then(function () {
+    .then(() => {
       return new P(function (resolve) {
-        setTimeout(function () {
-          resolve(testString);
-        }, 10);
-      });
+        setTimeout(() => {
+          resolve(foo)
+        }, 10)
+      })
     })
     .then(function (string) {
-      expect(string).toBe(testString)
+      expect(string).toBe(foo)
       done()
-    });
-});
+    })
+})
 
-test('chaining works with non-promise return values', function (done) {
-  let testString = 'foo';
+test('chaining works with non-promise return types', done => {
+  let foo = 'foo'
 
   let promise = new P(function (resolve) {
-    setTimeout(function () {
-      resolve();
-    }, 10);
-  });
+    setTimeout(() => {
+      resolve()
+    }, 10)
+  })
 
   promise
-    .then(() => testString)
+    .then(() => foo)
     .then(string => {
-      expect(string).toBe(testString)
+      expect(string).toBe(foo)
       done()
-    });
-});
+    })
+})
 
-test('resolution handlers can be attached when promise is resolved', done => {
-  let testString = 'foo';
+test('success handlers can be attached when a promise is resolved', done => {
+  let foo = 'foo'
 
   let promise = new P(function (resolve) {
-    setTimeout(function () {
-      resolve(testString);
-    }, 10);
-  });
+    setTimeout(() => {
+      resolve(foo)
+    }, 10)
+  })
 
   promise
-    .then(function () {
-      setTimeout(function () {
+    .then(() => {
+      setTimeout(() => {
         promise
           .then(function (value) {
-            expect(value).toBe(testString)
+            expect(value).toBe(foo)
             done()
-          });
-      }, 10);
-    });
-});
+          })
+      }, 10)
+    })
+})
 
-xtest('calling resolve second time has no effect', done => {
-  let testString = 'foo';
-  let testString2 = 'bar';
+test('calling resolve() for the second time does nothing', done => {
+  let foo = 'foo'
+  let testString2 = 'bar'
 
   let promise = new P(function (resolve) {
-    setTimeout(function () {
-      resolve(testString);
-      resolve(testString2);
-    }, 100);
-  });
+    setTimeout(() => {
+      resolve(foo)
+      resolve(testString2)
+    }, 100)
+  })
 
   promise.then(function (value) {
-    expect(value).toBe(testString)
+    expect(value).toBe(foo)
     done()
-  });
-});
+  })
+})
 
-xtest('rejection handler is called when promise is rejected', done => {
-  let testError = new Error('Something went wrong');
+test('error handler is called on rejection', done => {
+  let err = new Error('Something went wrong')
 
   let promise = new P(function (resolve, reject) {
-    setTimeout(function () {
-      reject(testError);
-    }, 100);
-  });
+    setTimeout(() => {
+      reject(err)
+    }, 100)
+  })
 
   promise.catch(function (value) {
-    expect(value).toEqual(testError)
+    expect(value).toEqual(err)
     done()
-  });
-});
+  })
+})
 
-xtest('rejections are passed downstream', function (done) {
-  let testError = new Error('Something went wrong');
+test('errors are passed by the chain of promises', done => {
+  let err = new Error('Something went wrong')
 
   let promise = new P(function (resolve, reject) {
-    setTimeout(function () {
-      reject(testError);
-    }, 100);
-  });
+    setTimeout(() => {
+      reject(err)
+    }, 100)
+  })
 
   promise
-    .then(function () {
+    .then(() => {
       return new P(function (resolve) {
-        setTimeout(function () {
-          resolve(testError);
-        }, 100);
-      });
+        setTimeout(() => {
+          resolve(err)
+        }, 100)
+      })
     })
     .catch(function (value) {
-      expect(value).toBe(testError)
+      expect(value).toBe(err)
       done()
-    });
-});
+    })
+})
 
-xtest('rejecting promises returned from resolution handlers are caught properly', done => {
-  let testError = new Error('Something went wrong');
+test('rejected promises from success handlers are caught', done => {
+  let err = new Error('Something went wrong')
 
   let promise = new P(function (resolve) {
-    setTimeout(function () {
-      resolve();
-    }, 100);
-  });
+    setTimeout(() => {
+      resolve()
+    }, 100)
+  })
 
   promise
-    .then(function () {
+    .then(() => {
       return new P(function (resolve, reject) {
-        setTimeout(function () {
-          reject(testError);
-        }, 100);
-      });
+        setTimeout(() => {
+          reject(err)
+        }, 100)
+      })
     })
     .catch(function (value) {
-      expect(value).toBe(testError)
+      expect(value).toBe(err)
       done()
-    });
-});
+    })
+})
 
-xtest('rejection handlers catch synchronous errors in resolution handlers', done => {
-  let testError = new Error('Something went wrong');
+test('error handlers receive synchronous errors from success handlers', done => {
+  let err = new Error('Something went wrong')
 
   let promise = new P(function (resolve) {
-    setTimeout(function () {
-      resolve();
-    }, 100);
-  });
+    setTimeout(() => {
+      resolve()
+    }, 100)
+  })
 
   promise
-    .then(function () {
-      throw testError;
+    .then(() => {
+      throw err
     })
     .catch(function (value) {
-      expect(value).toBe(testError)
+      expect(value).toBe(err)
       done()
-    });
-});
+    })
+})
 
-xtest('rejection handlers catch synchronous errors in the executor function', function (done) {
-  let testError = new Error('Something went wrong');
+test('error handlers catch errors thrown from the initial function', done => {
+  let err = new Error('Something went wrong')
 
-  let promise = new P(function () {
-    throw testError;
-  });
+  let promise = new P(() => {
+    throw err
+  })
 
   promise
-    .then(function () {
+    .then(() => {
       return new P(function (resolve) {
-        setTimeout(function () {
-          resolve(testError);
-        }, 100);
-      });
+        setTimeout(() => {
+          resolve(err)
+        }, 100)
+      })
     })
     .catch(function (value) {
-      expect(value).toBe(testError)
+      expect(value).toBe(err)
       done()
-    });
-});
+    })
+})
 
-xtest('rejection handlers catch synchronous erros', done => {
-  let testError = new Error('Something went wrong');
+test('error handlers catch synchronous errors', done => {
+  let err = new Error('Something went wrong')
 
   let promise = new P(function (resolve) {
-    setTimeout(function () {
-      resolve();
-    }, 100);
-  });
+    setTimeout(() => {
+      resolve()
+    }, 100)
+  })
 
   promise
-    .then(function () {
-      throw new Error('some Error');
+    .then(() => {
+      throw new Error('some Error')
     })
-    .catch(function () {
-      throw testError;
+    .catch(() => {
+      throw err
     })
     .catch(function (value) {
-      expect(value).toBe(testError)
+      expect(value).toBe(err)
       done()
-    });
-});
+    })
+})
 
-xtest('chaining works after "catch"', function (done) {
-  let testString = 'foo';
+test('chaining is possible after .catch()', done => {
+  let foo = 'foo'
 
   let promise = new P(function (resolve) {
     setTimeout(function a() {
-      resolve();
-    }, 100);
-  });
+      resolve()
+    }, 100)
+  })
 
   promise
     .then(function b() {
-      throw new Error('some Error');
+      throw new Error('some Error')
     })
     .catch(function c() {
       return new P(function d(resolve) {
         setTimeout(function e() {
-          resolve(testString);
-        }, 100);
-      });
+          resolve(foo)
+        }, 100)
+      })
     })
     .then(function f(value) {
-      expect(value).toBe(testString)
+      expect(value).toBe(foo)
       done()
-    });
-});
+    })
+})
 
 
-xtest('rejecting promises returned from rejection handlers are caught properly', function (t) {
-  let testError = new Error('Something went wrong');
-
+test('rejected promises returned from error handlers are caught', done => {
+  let err = new Error('Something went wrong')
 
   let promise = new P(function (resolve) {
-    setTimeout(function () {
-      resolve();
-    }, 100);
-  });
+    setTimeout(() => {
+      resolve()
+    }, 100)
+  })
 
   promise
-    .then(function () {
-      throw new Error('some Error');
+    .then(() => {
+      throw new Error('some Error')
     })
-    .catch(function () {
+    .catch(() => {
       return new P(function (resolve, reject) {
-        setTimeout(function () {
-          reject(testError);
-        }, 100);
-      });
+        setTimeout(() => {
+          reject(err)
+        }, 100)
+      })
     })
     .catch(function (value) {
-      t.equal(value, testError);
-      t.end();
-    });
-});
+      expect(value).toBe(err)
+      done()
+    })
+})
 
-xtest('second argument in then is treated as a rejection handler', function (t) {
-  let testError = new Error('Something went wrong');
-
+test('second argument in then() is treated an error handler', done => {
+  let err = new Error('Something went wrong')
 
   let promise = new P(function (resolve, reject) {
-    setTimeout(function () {
-      reject(testError);
-    }, 100);
-  });
+    setTimeout(() => {
+      reject(err)
+    }, 100)
+  })
 
   promise
     .then(
-      function () {
+      () => {
       },
       function (error) {
-        t.equal(error, testError);
-        t.end();
-      });
+        expect(error).toBe(err)
+        done()
+      })
 
-});
+})
 
-xtest('second argument in then is attached to the promise then is called on', function (t) {
-  let testError = new Error('Something went wrong');
-  let didRun = false;
-
+test('second argument of then() is attached to the promise on which then() is called', done => {
+  let err = new Error('Something went wrong')
+  let ran = false
 
   let promise = new P(function (resolve) {
-    setTimeout(function () {
-      resolve();
-    }, 100);
-  });
+    setTimeout(() => {
+      resolve()
+    }, 100)
+  })
 
   promise
     .then(
-      function () {
+      () => {
         return new P(function (resolve, reject) {
-          setTimeout(function () {
-            reject(testError);
-          }, 100);
-        });
+          setTimeout(() => {
+            reject(err)
+          }, 100)
+        })
       },
-      function () {
-        didRun = true;
+      () => {
+        ran = true
       })
     .catch(function (error) {
-      t.equal(error, testError);
-      t.equal(didRun, false);
-      t.end();
-    });
-
-});
-
-// const foo = new Pledge((resolve) => {
-//   setTimeout(() => {
-//     resolve('hey')
-//   }, 300)
-// })
-//
-// foo
-//   .then(value => {
-//     console.log(value)
-//
-//     return new Pledge((resolve) => {
-//       setTimeout(() => {
-//         resolve('eeey')
-//       }, 2000)
-//     })
-//   })
-//   .then(value => {
-//     console.log(value)
-//
-//     return new Pledge((resolve) => {
-//       setTimeout(() => {
-//         resolve('yay')
-//       }, 2000)
-//     })
-//   })
-//   .then(console.log)
-//
-// foo.then(v => console.log(v + ' again'))
-// foo.then(v => console.log(v + ' and again'))
+      expect(error).toBe(err)
+      expect(ran).toBe(false)
+      done()
+    })
+})

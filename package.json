@@ -1,9 +1,10 @@
 {
   "name": "pledge",
   "version": "1.0.0",
-  "description": "",
+  "description": "A simple promise library",
   "main": "Pledge.js",
   "scripts": {
+    "pretest": "eslint --ignore-path .gitignore .",
     "test": "jest"
   },
   "repository": {
@@ -18,6 +19,7 @@
   },
   "homepage": "https://github.com/taxnuke/pledge#readme",
   "devDependencies": {
+    "eslint": "^5.8.0",
     "jest": "^23.6.0"
   }
 }

@@ -15,6 +15,7 @@ function Pledge(fn = _dummyFn) {
   this._value = null
   this._errorHandlers = []
   this._successHandlers = []
+  this._finallyHandlers = []
   this._state = Pledge.prototype._states.pending
 
   this._attempt(() => {
@@ -107,6 +108,28 @@ Pledge.all = function (iterable) {
 }
 
 /**
+ * Add a finally handler.
+ *
+ * @param {Function} onFinally - finally handler
+ * @return {Pledge}
+ */
+Pledge.prototype.finally = function (onFinally) {
+  if (!this._next) {
+    this._next = new Pledge()
+  }
+
+  if (onFinally) {
+    this._finallyHandlers.push(onFinally)
+  }
+
+  if (this._state !== Pledge.prototype._states.pending) {
+    this._runFinallyHandlers()
+  }
+
+  return this._next
+}
+
+/**
  * Add an error handler.
  *
  * @param {Function} onError - error handler
@@ -192,10 +215,37 @@ Pledge.prototype._runSuccessHandlers = function () {
   })
 }
 
+Pledge.prototype._runFinallyHandlers = function () {
+  this._finallyHandlers.forEach(handler => {
+    let handlerResult
+
+    this._attempt(() => {
+      handlerResult = handler()
+    }, e => {
+      this._next._value = e
+      this._next._state = Pledge.prototype._states.rejected
+    })
+
+    if (handlerResult && handlerResult instanceof Pledge) {
+      handlerResult
+        .then(result => {
+          this._next._resolve(result)
+        }, e => this._next._reject(e))
+    } else {
+      if (this._state === Pledge.prototype._states.resolved) {
+        this._next._resolve(this._value)
+      } else if (this._state === Pledge.prototype._states.rejected) {
+        this._next._reject(this._value)
+      }
+    }
+  })
+}
+
 Pledge.prototype._reject = function (error) {
   if (this._state === Pledge.prototype._states.pending) {
     this._value = error
     this._state = Pledge.prototype._states.rejected
+    this._runFinallyHandlers()
     this._runErrorHandlers()
   }
 }
@@ -204,6 +254,7 @@ Pledge.prototype._resolve = function (result) {
   if (this._state === Pledge.prototype._states.pending) {
     this._value = result
     this._state = Pledge.prototype._states.resolved
+    this._runFinallyHandlers()
     this._runSuccessHandlers()
   }
 }

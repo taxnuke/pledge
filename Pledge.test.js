@@ -616,19 +616,14 @@ test('a throw in .finally() callback returns a rejected promise with that error'
     })
 })
 
-// If the handler function passed to .finally returns a promise,
-// the promise returned by .finally will not be settled until
-// the promise returned by the handler is settled. If the handler
-// fulfills its promise, the returned promise will be fulfilled or
-// rejected with the original value. If the handler rejects its promise,
-// the returned promise will be rejected with the handler's value.
-xtest('if .finally cb returns a promise, the original promise is not settled until the promise from the cb is settled', done => {
-  P.resolve(5)
+test('if .finally cb returns a promise, the original promise is not settled until the promise from the cb is settled', done => {
+  P
+    .resolve(5)
     .finally(() => {
       return P.reject(6)
     })
-    .then(value => {
-      expect(value).toBe(6)
+    .catch(err => {
+      expect(err).toBe(6)
       done()
     })
 })

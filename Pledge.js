@@ -115,11 +115,7 @@ Pledge.all = function (iterable) {
  */
 Pledge.prototype.finally = function (onFinally) {
   if (!this._next) {
-    const p = new Pledge()
-    p._state = this._state
-    p._value = this._value
-
-    this._next = p
+    this._next = new Pledge()
   }
 
   if (onFinally) {
@@ -231,8 +227,16 @@ Pledge.prototype._runFinallyHandlers = function () {
     })
 
     if (handlerResult && handlerResult instanceof Pledge) {
-      // todo: implement
-      throw new Error('You cannot return promises from FINALLY')
+      handlerResult
+        .then(result => {
+          this._next._resolve(result)
+        }, e => this._next._reject(e))
+    } else {
+      if (this._state === Pledge.prototype._states.resolved) {
+        this._next._resolve(this._value)
+      } else if (this._state === Pledge.prototype._states.rejected) {
+        this._next._reject(this._value)
+      }
     }
   })
 }

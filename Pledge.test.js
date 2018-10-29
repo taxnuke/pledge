@@ -477,3 +477,156 @@ test('Pledge.race() is resolved on first resoled promise', done => {
       done()
     })
 })
+
+test('Pledge.finally() does not receive any arguments', done => {
+  const p1 = new P(resolve => {
+    setTimeout(resolve, 20, 'foo')
+  })
+
+  p1.finally(value => {
+    expect(value).toEqual(undefined)
+    done()
+  })
+})
+
+test('Pledge.finally() passes state down', done => {
+  const err = new Error('Rejected')
+  let ok = false
+
+  P.reject(err)
+    .finally(() => {
+      ok = true
+    })
+    .then(() => {
+      ok = false
+    })
+    .catch(e => {
+      expect(e).toBe(err)
+      expect(ok).toBe(true)
+      done()
+    })
+})
+
+test('.finally() runs after a promise is settled', done => {
+  let res = null
+  let catchRan = false
+  let finallyRan = false
+
+  new P(resolve => {
+    setTimeout(resolve, 20, 'foo')
+  })
+    .finally(() => {
+      finallyRan = true
+    })
+    .catch(() => {
+      catchRan = true
+    })
+    .then(r => {
+      res = r
+    })
+    .finally(() => {
+      expect(res).toBe('foo')
+      expect(catchRan).toBeFalsy()
+      expect(finallyRan).toBeTruthy()
+      done()
+    })
+})
+
+test('.finally() handles chaining correctly', done => {
+  let finallyRan = false
+
+  new P(resolve => {
+    setTimeout(resolve, 20, 'foo')
+  })
+    .catch(() => {
+      throw new Error('Should not have been thrown...')
+    })
+    .finally(() => {
+      finallyRan = true
+    })
+    .then(result => {
+      return P.reject(result)
+    })
+    .then(() => {
+      throw new Error('Should not have been thrown...')
+    })
+    .catch(reason => {
+      expect(reason).toBe('foo')
+      expect(finallyRan).toBe(true)
+      done()
+    })
+})
+
+test('.finally() runs in between the chained promises', done => {
+  let finallyRan = false
+
+  new P(resolve => {
+    setTimeout(resolve, 20, 'foo')
+  })
+    .catch(() => {
+      throw new Error('Should not have been thrown...')
+    })
+    .finally(() => {
+      finallyRan = true
+    })
+    .then(result => {
+      return P.reject(result)
+    })
+    .then(() => {
+      throw new Error('Should not have been thrown...')
+    })
+    .catch(reason => {
+      expect(reason).toBe('foo')
+      expect(finallyRan).toBe(true)
+      done()
+    })
+})
+
+test('.finally(fn) is different from .then(fn, fn)', done => {
+  P
+    .resolve(2)
+    .finally(() => {
+    })
+    .then(value => {
+      expect(value).toBe(2)
+      P
+        .reject(3)
+        .finally(() => {
+        })
+        .catch(e => {
+          expect(e).toBe(3)
+          done()
+        })
+    })
+})
+
+test('a throw in .finally() callback returns a rejected promise with that error', done => {
+  const err = new Error('Error from finally')
+
+  P
+    .resolve(2)
+    .finally(() => {
+      throw err
+    })
+    .catch(e => {
+      expect(e).toBe(err)
+      done()
+    })
+})
+
+// If the handler function passed to .finally returns a promise,
+// the promise returned by .finally will not be settled until
+// the promise returned by the handler is settled. If the handler
+// fulfills its promise, the returned promise will be fulfilled or
+// rejected with the original value. If the handler rejects its promise,
+// the returned promise will be rejected with the handler's value.
+xtest('if .finally cb returns a promise, the original promise is not settled until the promise from the cb is settled', done => {
+  P.resolve(5)
+    .finally(() => {
+      return P.reject(6)
+    })
+    .then(value => {
+      expect(value).toBe(6)
+      done()
+    })
+})

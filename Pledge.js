@@ -15,6 +15,7 @@ function Pledge(fn = _dummyFn) {
   this._value = null
   this._errorHandlers = []
   this._successHandlers = []
+  this._finallyHandlers = []
   this._state = Pledge.prototype._states.pending
 
   this._attempt(() => {
@@ -107,6 +108,24 @@ Pledge.all = function (iterable) {
 }
 
 /**
+ * Add a finally handler.
+ *
+ * @param {Function} onFinally - finally handler
+ * @return {Pledge}
+ */
+Pledge.prototype.finally = function (onFinally) {
+  if (onFinally) {
+    this._finallyHandlers.push(onFinally)
+  }
+
+  if (this._state !== Pledge.prototype._states.pending) {
+    this._runFinallyHandlers()
+  }
+
+  return this
+}
+
+/**
  * Add an error handler.
  *
  * @param {Function} onError - error handler
@@ -192,10 +211,29 @@ Pledge.prototype._runSuccessHandlers = function () {
   })
 }
 
+Pledge.prototype._runFinallyHandlers = function () {
+  this._finallyHandlers.forEach(handler => {
+    let handlerResult
+
+    this._attempt(() => {
+      handlerResult = handler()
+    }, e => {
+      this._value = e
+      this._state = Pledge.prototype._states.rejected
+    })
+
+    if (handlerResult && handlerResult instanceof Pledge) {
+      // todo: implement
+      throw new Error('You cannot return promises from FINALLY')
+    }
+  })
+}
+
 Pledge.prototype._reject = function (error) {
   if (this._state === Pledge.prototype._states.pending) {
     this._value = error
     this._state = Pledge.prototype._states.rejected
+    this._runFinallyHandlers()
     this._runErrorHandlers()
   }
 }
@@ -204,6 +242,7 @@ Pledge.prototype._resolve = function (result) {
   if (this._state === Pledge.prototype._states.pending) {
     this._value = result
     this._state = Pledge.prototype._states.resolved
+    this._runFinallyHandlers()
     this._runSuccessHandlers()
   }
 }

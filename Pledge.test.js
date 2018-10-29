@@ -1,3 +1,5 @@
+jest.setTimeout(50)
+
 const P = require('./Pledge.js')
 // const P = Promise
 

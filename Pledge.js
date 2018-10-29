@@ -114,6 +114,14 @@ Pledge.all = function (iterable) {
  * @return {Pledge}
  */
 Pledge.prototype.finally = function (onFinally) {
+  if (!this._next) {
+    const p = new Pledge()
+    p._state = this._state
+    p._value = this._value
+
+    this._next = p
+  }
+
   if (onFinally) {
     this._finallyHandlers.push(onFinally)
   }
@@ -122,7 +130,7 @@ Pledge.prototype.finally = function (onFinally) {
     this._runFinallyHandlers()
   }
 
-  return this
+  return this._next
 }
 
 /**
@@ -218,8 +226,8 @@ Pledge.prototype._runFinallyHandlers = function () {
     this._attempt(() => {
       handlerResult = handler()
     }, e => {
-      this._value = e
-      this._state = Pledge.prototype._states.rejected
+      this._next._value = e
+      this._next._state = Pledge.prototype._states.rejected
     })
 
     if (handlerResult && handlerResult instanceof Pledge) {
